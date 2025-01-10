@@ -1,7 +1,45 @@
-<?xml version="1.0" encoding="utf-8"?>
-<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/local_img"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:src="@tools:sample/backgrounds/scenic" />
+    android:layout_height="wrap_content"
+    android:padding="8dp">
+
+    <!-- Картинка -->
+    <ImageView
+        android:id="@+id/localImg"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:scaleType="centerCrop"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Подпись "Тип файла" сверху -->
+    <TextView
+        android:id="@+id/fileType"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="File Type"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:layout_alignTop="@id/localImg"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="8dp" />
+
+    <!-- Подпись "Дата создания" снизу -->
+    <TextView
+        android:id="@+id/fileDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Date"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        android:layout_alignBottom="@id/localImg"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="8dp" />
+
+    <android.widget.CheckBox
+        android:id="@+id/selectionIndicator"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_alignParentEnd="true"
+        android:visibility="gone" />
+
+</RelativeLayout>

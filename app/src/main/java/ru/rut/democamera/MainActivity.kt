@@ -18,15 +18,13 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.google.android.material.snackbar.Snackbar
-import com.google.common.util.concurrent.ListenableFuture
 import ru.rut.democamera.databinding.ActivityMainBinding
 import java.io.File
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-    private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
+    private lateinit var cameraProviderFuture: com.google.firebase.crashlytics.buildtools.reloc.com.google.common.util.concurrent.ListenableFuture<ProcessCameraProvider>
     private lateinit var cameraSelector: CameraSelector
     private var imageCapture: ImageCapture? = null
     private lateinit var imageCaptureExecutor: ExecutorService
@@ -46,11 +44,15 @@ class MainActivity : AppCompatActivity() {
         }
 
     private fun startCamera() {
-        val preview = Preview.Builder().build().also {
-            it.setSurfaceProvider(binding.preview.surfaceProvider)
-        }
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
+
+            cameraSelector = CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
+
+            val preview = Preview.Builder().build().also {
+                it.setSurfaceProvider(binding.preview.surfaceProvider)
+            }
 
             imageCapture = ImageCapture.Builder().build()
 
@@ -58,44 +60,36 @@ class MainActivity : AppCompatActivity() {
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
             } catch (e: Exception) {
-                Log.d("TAG", "Use case binding failed")
+                Log.d("TAG", "Use case binding failed: ${e.message}")
             }
         }, ContextCompat.getMainExecutor(this))
     }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-        cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-        imageCaptureExecutor = Executors.newSingleThreadExecutor()
-
+        // Запрос разрешений камеры
         cameraPermissionResult.launch(android.Manifest.permission.CAMERA)
 
+        // Кнопка для захвата фотографии
         binding.imgCaptureBtn.setOnClickListener {
             takePhoto()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                animateFlash()
-            }
+            animateFlash()  // Включение вспышки
         }
 
-        binding.switchBtn.setOnClickListener {
-            cameraSelector = if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
-                CameraSelector.DEFAULT_FRONT_CAMERA
-            } else {
-                CameraSelector.DEFAULT_BACK_CAMERA
-            }
-            startCamera()
-        }
         binding.galleryBtn.setOnClickListener {
             val intent = Intent(this, GalleryActivity::class.java)
             startActivity(intent)
         }
 
+        binding.switchBtn.setOnClickListener {
+            // Логика для переключения камеры
+        }
     }
+
 
     override fun onDestroy() {
         super.onDestroy()
@@ -107,26 +101,25 @@ class MainActivity : AppCompatActivity() {
             val fileName = "JPEG_${System.currentTimeMillis()}.jpg"
             val file = File(externalMediaDirs[0], fileName)
             val outputFileOptions = ImageCapture.OutputFileOptions.Builder(file).build()
+
             it.takePicture(
                 outputFileOptions,
-                imageCaptureExecutor,
+                ContextCompat.getMainExecutor(this),
                 object : ImageCapture.OnImageSavedCallback {
                     override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                         Log.i("TAG", "The image has been saved in ${file.toUri()}")
+                        Toast.makeText(this@MainActivity, "Photo saved!", Toast.LENGTH_SHORT).show()
                     }
 
                     override fun onError(exception: ImageCaptureException) {
-                        Toast.makeText(
-                            binding.root.context,
-                            "Error taking photo",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        Log.d("TAG", "Error taking photo:$exception")
+                        Log.e("TAG", "Error taking photo: ${exception.message}")
+                        Toast.makeText(this@MainActivity, "Error taking photo", Toast.LENGTH_SHORT).show()
                     }
-
-                })
+                }
+            )
         }
     }
+
 
     @RequiresApi(Build.VERSION_CODES.M)
     private fun animateFlash() {
@@ -137,4 +130,5 @@ class MainActivity : AppCompatActivity() {
             }, 50)
         }, 100)
     }
+
 }
