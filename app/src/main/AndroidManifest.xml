@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:allowBackup="true"
@@ -18,7 +19,7 @@
             android:name=".GalleryActivity"
             android:exported="false" />
         <activity
-            android:name=".MainActivity"
+            android:name=".PhotoStartActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -26,6 +27,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".FullScreenActivity" />
+        <activity android:name=".VideoStartActivity">
+        </activity>
     </application>
 
 </manifest>

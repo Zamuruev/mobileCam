@@ -1,5 +1,6 @@
 package ru.rut.democamera
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -20,14 +21,14 @@ import androidx.core.net.toUri
 import com.google.android.material.snackbar.Snackbar
 import ru.rut.democamera.databinding.ActivityMainBinding
 import java.io.File
-import java.util.concurrent.ExecutorService
 
-class MainActivity : AppCompatActivity() {
+class PhotoStartActivity : AppCompatActivity() {
+
     private lateinit var binding: ActivityMainBinding
-    private lateinit var cameraProviderFuture: com.google.firebase.crashlytics.buildtools.reloc.com.google.common.util.concurrent.ListenableFuture<ProcessCameraProvider>
+    private lateinit var cameraProvider: ProcessCameraProvider
     private lateinit var cameraSelector: CameraSelector
     private var imageCapture: ImageCapture? = null
-    private lateinit var imageCaptureExecutor: ExecutorService
+
     @RequiresApi(Build.VERSION_CODES.M)
     private val cameraPermissionResult =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { permissionGranted ->
@@ -39,16 +40,13 @@ class MainActivity : AppCompatActivity() {
                     "The camera permission is necessary",
                     Snackbar.LENGTH_INDEFINITE
                 ).show()
-
             }
         }
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-
-            cameraSelector = CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
+            cameraProvider = cameraProviderFuture.get()
 
             val preview = Preview.Builder().build().also {
                 it.setSurfaceProvider(binding.preview.surfaceProvider)
@@ -57,15 +55,15 @@ class MainActivity : AppCompatActivity() {
             imageCapture = ImageCapture.Builder().build()
 
             try {
-                cameraProvider.unbindAll()
+                cameraProvider.unbindAll()  // Очищаем все привязки перед повторным связыванием камеры
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
             } catch (e: Exception) {
-                Log.d("TAG", "Use case binding failed: ${e.message}")
+                Log.e("TAG", "Use case binding failed: ${e.message}")
             }
         }, ContextCompat.getMainExecutor(this))
     }
 
-
+    @SuppressLint("RestrictedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -74,26 +72,51 @@ class MainActivity : AppCompatActivity() {
         // Запрос разрешений камеры
         cameraPermissionResult.launch(android.Manifest.permission.CAMERA)
 
-        // Кнопка для захвата фотографии
-        binding.imgCaptureBtn.setOnClickListener {
-            takePhoto()
-            animateFlash()  // Включение вспышки
+        // Инициализация камеры с задней камерой
+        cameraSelector = CameraSelector.Builder()
+            .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+            .build()
+
+        // Кнопка для переключения камеры
+        binding.switchBtn.setOnClickListener {
+            // Переключаем состояние камеры (передняя/задняя)
+            val newLensFacing = if (cameraSelector.lensFacing == CameraSelector.LENS_FACING_BACK) {
+                CameraSelector.LENS_FACING_FRONT
+            } else {
+                CameraSelector.LENS_FACING_BACK
+            }
+
+            // Обновляем cameraSelector с новым состоянием
+            cameraSelector = CameraSelector.Builder()
+                .requireLensFacing(newLensFacing)
+                .build()
+
+            // Перезапускаем камеру с новым CameraSelector
+            startCamera()
         }
 
+        // Кнопка для перехода на экран видео
+        binding.switchToVideoBtn.setOnClickListener {
+            val intent = Intent(this, VideoStartActivity::class.java) // Переход на экран видео
+            startActivity(intent)
+        }
+
+        // Кнопка для захвата фотографии
+        binding.imgCaptureBtn.setOnClickListener {
+            takePhoto() // Логика для съемки фото
+        }
+
+        // Открытие галереи
         binding.galleryBtn.setOnClickListener {
             val intent = Intent(this, GalleryActivity::class.java)
             startActivity(intent)
         }
-
-        binding.switchBtn.setOnClickListener {
-            // Логика для переключения камеры
-        }
     }
-
 
     override fun onDestroy() {
         super.onDestroy()
-        imageCaptureExecutor.shutdown()
+        cameraProvider.unbindAll()
+
     }
 
     private fun takePhoto() {
@@ -108,18 +131,17 @@ class MainActivity : AppCompatActivity() {
                 object : ImageCapture.OnImageSavedCallback {
                     override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                         Log.i("TAG", "The image has been saved in ${file.toUri()}")
-                        Toast.makeText(this@MainActivity, "Photo saved!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@PhotoStartActivity, "Photo saved!", Toast.LENGTH_SHORT).show()
                     }
 
                     override fun onError(exception: ImageCaptureException) {
                         Log.e("TAG", "Error taking photo: ${exception.message}")
-                        Toast.makeText(this@MainActivity, "Error taking photo", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@PhotoStartActivity, "Error taking photo", Toast.LENGTH_SHORT).show()
                     }
                 }
             )
         }
     }
-
 
     @RequiresApi(Build.VERSION_CODES.M)
     private fun animateFlash() {
@@ -132,3 +154,4 @@ class MainActivity : AppCompatActivity() {
     }
 
 }
+

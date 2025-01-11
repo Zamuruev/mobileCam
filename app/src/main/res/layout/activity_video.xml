@@ -1,17 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".PhotoStartActivity">
+    tools:context=".VideoStartActivity">
 
+    <!-- Превью видео -->
     <androidx.camera.view.PreviewView
         android:id="@+id/preview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="16dp" >
 
+        <TextView
+            android:id="@+id/timerText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="16dp"
+            android:text="00:00"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp" />
+    </androidx.camera.view.PreviewView>
+
+    <!-- Таймер для записи -->
+
+    <!-- Кнопки управления внизу -->
     <LinearLayout
         android:id="@+id/button_container"
         android:layout_width="match_parent"
@@ -21,7 +37,6 @@
         android:layout_marginBottom="16dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- Кнопка для переключения камеры -->
         <com.mikepenz.iconics.view.IconicsImageView
             android:id="@+id/switchBtn"
             android:layout_width="50dp"
@@ -30,27 +45,24 @@
             app:iiv_color="#FFFFFF"
             android:layout_margin="20dp" />
 
-        <!-- Кнопка для перехода на экран видео -->
         <com.mikepenz.iconics.view.IconicsImageView
-            android:id="@+id/switchToVideoBtn"
+            android:id="@+id/photoBtn"
             android:layout_width="50dp"
             android:layout_height="50dp"
-            app:iiv_icon="gmd_videocam"
-        app:iiv_color="#FFFFFF"
-        android:layout_margin="20dp" />
-
-        <!-- Кнопка для захвата фото -->
-        <com.mikepenz.iconics.view.IconicsImageView
-            android:id="@+id/img_capture_btn"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            app:iiv_icon="gmd_camera"
+            app:iiv_icon="gmd_photo_camera"
             app:iiv_color="#FFFFFF"
             android:layout_margin="20dp" />
 
-        <!-- Кнопка для открытия галереи -->
         <com.mikepenz.iconics.view.IconicsImageView
-            android:id="@+id/gallery_btn"
+            android:id="@+id/recordBtn"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            app:iiv_icon="gmd_videocam"
+            app:iiv_color="#FFFFFF"
+            android:layout_margin="20dp" />
+
+        <com.mikepenz.iconics.view.IconicsImageView
+            android:id="@+id/galleryBtn"
             android:layout_width="50dp"
             android:layout_height="50dp"
             app:iiv_icon="gmd_photo_library"

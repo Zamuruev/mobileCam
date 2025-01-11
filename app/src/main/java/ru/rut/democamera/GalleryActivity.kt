@@ -90,7 +90,7 @@ class GalleryActivity : AppCompatActivity() {
                     adapter.clearSelection()  // Выход из режима выбора
                     updateDeleteButtonVisibility(false) // Скрыть кнопку
                 } else {
-                    val intent = Intent(this, MainActivity::class.java)
+                    val intent = Intent(this, PhotoStartActivity::class.java)
                     startActivity(intent)  // Запуск MainActivity
                     finish()  // Закрытие текущей активности
                 }
