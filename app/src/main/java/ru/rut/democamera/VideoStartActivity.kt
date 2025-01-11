@@ -19,13 +19,12 @@ import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.video.MediaStoreOutputOptions
-import androidx.camera.video.Quality
-import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recording
 import com.mikepenz.iconics.IconicsDrawable
 import com.mikepenz.iconics.typeface.library.googlematerial.GoogleMaterial
 import com.mikepenz.iconics.utils.icon
 import ru.rut.democamera.databinding.ActivityVideoBinding
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -35,9 +34,11 @@ class VideoStartActivity : ComponentActivity() {
 
     private lateinit var binding: ActivityVideoBinding
     private lateinit var videoCapture: VideoCapture<Recorder>
+    private lateinit var cameraProvider: ProcessCameraProvider
     private lateinit var cameraExecutor: ExecutorService
     private var isRecording = false
     private var startTime = 0L
+    private var currentCameraSelector = CameraSelector.LENS_FACING_BACK
     private val handler = Handler(Looper.getMainLooper())
     private val updateTimerRunnable = object : Runnable {
         override fun run() {
@@ -48,17 +49,18 @@ class VideoStartActivity : ComponentActivity() {
                 val displaySeconds = seconds % 60
                 val time = String.format("%02d:%02d", minutes, displaySeconds)
 
-                // Обновление UI должно происходить в основном потоке
+                Log.d("CameraX", "Timer updated: $time")
+
                 runOnUiThread {
-                    binding.timerText.text = time
+                    if (isRecording) {
+                        binding.timerText.text = time
+                    }
                 }
 
-                Log.d("CameraX", "Timer updated: $time")  // Логирование таймера
                 handler.postDelayed(this, 1000)
             }
         }
     }
-
 
     private var recording: Recording? = null
 
@@ -69,10 +71,8 @@ class VideoStartActivity : ComponentActivity() {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
 
-        // Проверка разрешений
         checkPermissions()
 
-        // Кнопка для записи видео
         binding.recordBtn.setOnClickListener {
             if (isRecording) {
                 stopRecording()
@@ -81,9 +81,17 @@ class VideoStartActivity : ComponentActivity() {
             }
         }
 
-        // Кнопка для перехода на экран фото
         binding.photoBtn.setOnClickListener {
             val intent = Intent(this, PhotoStartActivity::class.java)
+            startActivity(intent)
+        }
+
+        binding.switchBtn.setOnClickListener {
+            toggleCamera()
+        }
+
+        binding.galleryBtn.setOnClickListener {
+            val intent = Intent(this, GalleryActivity::class.java)
             startActivity(intent)
         }
     }
@@ -96,44 +104,52 @@ class VideoStartActivity : ComponentActivity() {
         )
 
         if (permissions.all { ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }) {
-            startCamera()  // Если все разрешения есть, запускаем камеру
+            startCamera()
         } else {
-            ActivityCompat.requestPermissions(this, permissions, 1)  // Запрашиваем разрешения
+            ActivityCompat.requestPermissions(this, permissions, 1)
         }
     }
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-
-            val preview = androidx.camera.core.Preview.Builder().build().also {
-                it.setSurfaceProvider(binding.preview.surfaceProvider)
-            }
-
-            // Создаем Recorder через Builder
-            val qualitySelector = QualitySelector.from(Quality.HD)
-            val recorder = Recorder.Builder()
-                .setQualitySelector(qualitySelector)
-                .build()
-
-            // Создаем VideoCapture с этим Recorder
-            videoCapture = VideoCapture.withOutput(recorder)
-
-            val cameraSelector = CameraSelector.Builder()
-                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-                .build()
-
             try {
-                cameraProvider.unbindAll()  // Освобождаем все ресурсы камеры перед её подключением
+                cameraProvider = cameraProviderFuture.get()
+
+                // Настроим preview для камеры
+                val preview = androidx.camera.core.Preview.Builder().build().also {
+                    it.setSurfaceProvider(binding.preview.surfaceProvider)  // Используем SurfaceProvider для отображения
+                }
+
+                // Используем стандартное качество
+                val recorder = Recorder.Builder().build()
+
+                // Настроим VideoCapture с выводом для записи
+                videoCapture = VideoCapture.withOutput(recorder)
+
+                // Камера с выбором линзы (фронтальная или задняя)
+                val cameraSelector = CameraSelector.Builder()
+                    .requireLensFacing(currentCameraSelector)
+                    .build()
+
+                cameraProvider.unbindAll()  // Очищаем все привязанные жизненные циклы
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, videoCapture)
+
                 Log.d("CameraX", "Camera successfully initialized")
             } catch (e: Exception) {
                 Log.e("CameraX", "Error starting camera: ${e.message}")
                 Toast.makeText(this, "Camera initialization failed", Toast.LENGTH_SHORT).show()
             }
-
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun toggleCamera() {
+        currentCameraSelector = if (currentCameraSelector == CameraSelector.LENS_FACING_BACK) {
+            CameraSelector.LENS_FACING_FRONT
+        } else {
+            CameraSelector.LENS_FACING_BACK
+        }
+        startCamera()
     }
 
     private fun startRecording() {
@@ -157,23 +173,17 @@ class VideoStartActivity : ComponentActivity() {
             .setContentValues(contentValues)
             .build()
 
-        // Проверка перед подготовкой записи
-        if (!this::videoCapture.isInitialized) {
-            Log.e("CameraX", "videoCapture is not initialized")
-            return
-        }
-
         // Подготовка записи
         val pendingRecording = videoCapture.output.prepareRecording(this, mediaStoreOutput)
 
-        // Начало записи
-        recording = pendingRecording.start(ContextCompat.getMainExecutor(this)) { recordEvent: VideoRecordEvent ->
+        // Запуск записи
+        recording = pendingRecording.start(ContextCompat.getMainExecutor(this)) { recordEvent ->
             when (recordEvent) {
                 is VideoRecordEvent.Start -> {
                     Log.d("CameraX", "Recording started!")
                     isRecording = true
                     startTime = System.currentTimeMillis()
-                    handler.post(updateTimerRunnable)  // Начинаем обновление таймера
+                    handler.post(updateTimerRunnable)
                     binding.recordBtn.icon = IconicsDrawable(this).icon(GoogleMaterial.Icon.gmd_stop)
                 }
                 is VideoRecordEvent.Finalize -> {
@@ -183,9 +193,11 @@ class VideoStartActivity : ComponentActivity() {
                         Toast.makeText(this, "Recording failed", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(this, "Recording saved!", Toast.LENGTH_SHORT).show()
+                        val videoFile = File(recordEvent.outputResults.outputUri.path!!)
+                        addVideoToGallery(videoFile)
                     }
                     isRecording = false
-                    handler.removeCallbacks(updateTimerRunnable)  // Останавливаем таймер
+                    handler.removeCallbacks(updateTimerRunnable)
                     binding.recordBtn.icon = IconicsDrawable(this).icon(GoogleMaterial.Icon.gmd_videocam)
                 }
             }
@@ -193,14 +205,12 @@ class VideoStartActivity : ComponentActivity() {
     }
 
     private fun stopRecording() {
-        // Остановка записи
-        recording?.stop()  // Просто останавливаем запись
+        // Останавливаем запись и корректно обновляем UI
+        recording?.stop()
         isRecording = false
-        handler.removeCallbacks(updateTimerRunnable)  // Останавливаем таймер
+        handler.removeCallbacks(updateTimerRunnable)
         binding.recordBtn.icon = IconicsDrawable(this).icon(GoogleMaterial.Icon.gmd_videocam)
     }
-
-
 
     override fun onResume() {
         super.onResume()
@@ -211,8 +221,31 @@ class VideoStartActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        recording?.stop()  // Останавливаем запись при уничтожении активности
+        recording?.stop()
         cameraExecutor.shutdown()
         Log.d("CameraX", "Camera resources cleaned up.")
     }
+
+    private fun addVideoToGallery(file: File) {
+        val values = ContentValues().apply {
+            put(MediaStore.Video.Media.DISPLAY_NAME, file.name)
+            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+            put(MediaStore.Video.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
+            put(MediaStore.Video.Media.DATE_MODIFIED, System.currentTimeMillis() / 1000)
+            put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/DemoCamera")  // Указываем путь в MediaStore
+        }
+
+        // Вставляем в MediaStore
+        contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)?.let { uri ->
+            // Теперь копируем файл в новое место в MediaStore, используя OutputStream
+            contentResolver.openOutputStream(uri)?.use { outputStream ->
+                file.inputStream().use { inputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
+        } ?: run {
+            Log.e("CameraX", "Failed to add video to gallery")
+        }
+    }
+
 }
