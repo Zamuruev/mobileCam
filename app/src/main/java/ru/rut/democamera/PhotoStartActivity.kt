@@ -16,6 +16,7 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.google.android.material.snackbar.Snackbar
@@ -53,7 +54,7 @@ class PhotoStartActivity : AppCompatActivity() {
             }
 
             imageCapture = ImageCapture.Builder().build()
-
+            binding.preview.scaleType = PreviewView.ScaleType.FILL_CENTER
             try {
                 cameraProvider.unbindAll()  // Очищаем все привязки перед повторным связыванием камеры
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
@@ -68,6 +69,7 @@ class PhotoStartActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
 
         // Запрос разрешений камеры
         cameraPermissionResult.launch(android.Manifest.permission.CAMERA)

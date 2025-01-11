@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.camera.core.CameraSelector
@@ -19,14 +20,14 @@ import androidx.core.content.ContextCompat
 import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
-import androidx.camera.video.MediaStoreOutputOptions
 import androidx.camera.video.Recording
+import com.mikepenz.iconics.IconicsColor
 import com.mikepenz.iconics.IconicsDrawable
 import com.mikepenz.iconics.typeface.library.googlematerial.GoogleMaterial
+import com.mikepenz.iconics.utils.color
 import com.mikepenz.iconics.utils.icon
 import ru.rut.democamera.databinding.ActivityVideoBinding
 import java.io.File
-import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -52,16 +53,15 @@ class VideoStartActivity : ComponentActivity() {
 
                 Log.d("CameraX", "Timer updated: $time")
 
-                runOnUiThread {
-                    if (isRecording) {
-                        binding.timerText.text = time
-                    }
+                if (isRecording) {
+                    binding.timerText.text = time
                 }
 
                 handler.postDelayed(this, 1000)
             }
         }
     }
+
 
     private var recording: Recording? = null
 
@@ -159,6 +159,8 @@ class VideoStartActivity : ComponentActivity() {
             return
         }
 
+        // Показываем таймер
+        binding.timerText.visibility = View.VISIBLE
         val fileName = "Video_${System.currentTimeMillis()}.mp4"
         val videoFile = File(externalMediaDirs[0], fileName)
 
@@ -185,8 +187,13 @@ class VideoStartActivity : ComponentActivity() {
                     Log.d("CameraX", "Recording started!")
                     isRecording = true
                     startTime = System.currentTimeMillis()
-                    handler.post(updateTimerRunnable)
-                    binding.recordBtn.icon = IconicsDrawable(this).icon(GoogleMaterial.Icon.gmd_stop)
+                    handler.post(updateTimerRunnable)  // Таймер запускается
+
+                    // Изменяем цвет на красный для кнопки остановки
+                    binding.recordBtn.icon = IconicsDrawable(this)
+                        .icon(GoogleMaterial.Icon.gmd_stop)
+                        .color({ IconicsColor(ContextCompat.getColor(this, R.color.red)) })
+
                 }
                 is VideoRecordEvent.Finalize -> {
                     Log.d("CameraX", "Recording finalized.")
@@ -200,11 +207,21 @@ class VideoStartActivity : ComponentActivity() {
                     }
                     isRecording = false
                     handler.removeCallbacks(updateTimerRunnable)
-                    binding.recordBtn.icon = IconicsDrawable(this).icon(GoogleMaterial.Icon.gmd_videocam)
+
+                    // Возвращаем иконку камеры в белый цвет
+                    binding.recordBtn.icon = IconicsDrawable(this)
+                        .icon(GoogleMaterial.Icon.gmd_videocam)
+                        .color({ IconicsColor(ContextCompat.getColor(this, android.R.color.white)) })
                 }
             }
         }
+
     }
+
+    private fun IconicsColor(color: Int): IconicsColor {
+        return IconicsColor.colorInt(color)
+    }
+
 
 
     private fun stopRecording() {
@@ -213,6 +230,7 @@ class VideoStartActivity : ComponentActivity() {
         isRecording = false
         handler.removeCallbacks(updateTimerRunnable)
         binding.recordBtn.icon = IconicsDrawable(this).icon(GoogleMaterial.Icon.gmd_videocam)
+        binding.timerText.visibility = View.GONE
     }
 
     override fun onResume() {

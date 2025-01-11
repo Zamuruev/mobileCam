@@ -9,8 +9,10 @@
         android:id="@+id/preview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <LinearLayout
         android:id="@+id/button_container"
@@ -36,8 +38,8 @@
             android:layout_width="50dp"
             android:layout_height="50dp"
             app:iiv_icon="gmd_videocam"
-        app:iiv_color="#FFFFFF"
-        android:layout_margin="20dp" />
+            app:iiv_color="#FFFFFF"
+            android:layout_margin="20dp" />
 
         <!-- Кнопка для захвата фото -->
         <com.mikepenz.iconics.view.IconicsImageView
