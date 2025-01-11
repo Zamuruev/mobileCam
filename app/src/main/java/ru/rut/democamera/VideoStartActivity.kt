@@ -13,6 +13,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.FileOutputOptions
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.camera.video.Recorder
@@ -158,25 +159,26 @@ class VideoStartActivity : ComponentActivity() {
             return
         }
 
-        val name = "CameraX-recording-" +
-                SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
-                    .format(System.currentTimeMillis()) + ".mp4"
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Video.Media.DISPLAY_NAME, name)
-            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+        val fileName = "Video_${System.currentTimeMillis()}.mp4"
+        val videoFile = File(externalMediaDirs[0], fileName)
+
+        // Проверка, существует ли родительская директория
+        if (!videoFile.parentFile.exists()) {
+            val dirCreated = videoFile.parentFile.mkdirs()
+            if (!dirCreated) {
+                Log.e("CameraX", "Failed to create directory")
+                return
+            }
         }
 
-        val mediaStoreOutput = MediaStoreOutputOptions.Builder(
-            contentResolver,
-            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-        )
-            .setContentValues(contentValues)
-            .build()
+        // Здесь создаём поток для записи
+        val recorder = Recorder.Builder().build()
 
-        // Подготовка записи
-        val pendingRecording = videoCapture.output.prepareRecording(this, mediaStoreOutput)
+        // Настроим объект для записи видео на указанный файл
+        val outputOptions = FileOutputOptions.Builder(videoFile).build()
 
-        // Запуск записи
+        val pendingRecording = videoCapture.output.prepareRecording(this, outputOptions)
+
         recording = pendingRecording.start(ContextCompat.getMainExecutor(this)) { recordEvent ->
             when (recordEvent) {
                 is VideoRecordEvent.Start -> {
@@ -193,7 +195,7 @@ class VideoStartActivity : ComponentActivity() {
                         Toast.makeText(this, "Recording failed", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(this, "Recording saved!", Toast.LENGTH_SHORT).show()
-                        val videoFile = File(recordEvent.outputResults.outputUri.path!!)
+                        // Если нужно добавить в галерею, используйте addVideoToGallery
                         addVideoToGallery(videoFile)
                     }
                     isRecording = false
@@ -203,6 +205,7 @@ class VideoStartActivity : ComponentActivity() {
             }
         }
     }
+
 
     private fun stopRecording() {
         // Останавливаем запись и корректно обновляем UI
@@ -227,25 +230,35 @@ class VideoStartActivity : ComponentActivity() {
     }
 
     private fun addVideoToGallery(file: File) {
+        // Проверяем, существует ли файл перед его добавлением
+        if (!file.exists()) {
+            Log.e("CameraX", "File does not exist: ${file.path}")
+            return
+        }
+
         val values = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, file.name)
             put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
             put(MediaStore.Video.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
             put(MediaStore.Video.Media.DATE_MODIFIED, System.currentTimeMillis() / 1000)
-            put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/DemoCamera")  // Указываем путь в MediaStore
+            put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/DemoCamera")  // Путь к MediaStore
         }
 
         // Вставляем в MediaStore
         contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)?.let { uri ->
-            // Теперь копируем файл в новое место в MediaStore, используя OutputStream
-            contentResolver.openOutputStream(uri)?.use { outputStream ->
-                file.inputStream().use { inputStream ->
-                    inputStream.copyTo(outputStream)
+            Log.d("CameraX", "Video URI: $uri")  // Логируем URI
+            try {
+                contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    file.inputStream().use { inputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
                 }
+                Log.d("CameraX", "Video added to gallery successfully")
+            } catch (e: Exception) {
+                Log.e("CameraX", "Error copying video to gallery: ${e.message}")
             }
         } ?: run {
             Log.e("CameraX", "Failed to add video to gallery")
         }
     }
-
 }
