@@ -9,6 +9,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import ru.rut.democamera.databinding.ListItemImageBinding
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class GalleryAdapter(
     private var fileArray: Array<File>,
@@ -31,6 +34,14 @@ class GalleryAdapter(
                 binding.fileType.text = "Photo"
                 Glide.with(binding.root).load(file).into(binding.localImg)
             }
+
+            // Получение даты последнего изменения файла
+            val date = Date(file.lastModified())
+            val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) // Формат даты
+            val formattedDate = dateFormat.format(date)
+
+            // Отображение даты на экране
+            binding.fileDate.text = formattedDate
 
             // Обновление UI для режима выбора
             binding.selectionIndicator.visibility =

@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -6,6 +5,7 @@
     android:layout_height="match_parent"
     tools:context=".FullScreenActivity">
 
+    <!-- ImageView для отображения изображения -->
     <ImageView
         android:id="@+id/fullScreenImage"
         android:layout_width="match_parent"
@@ -13,20 +13,39 @@
         android:scaleType="centerInside"
         tools:src="@tools:sample/backgrounds/scenic" />
 
+    <!-- VideoView для воспроизведения видео -->
+    <VideoView
+        android:id="@+id/fullScreenVideo"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Кнопка удаления -->
     <Button
         android:id="@+id/deleteBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Delete"
+        android:text="Удалить"
         android:layout_margin="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
+    <!-- Кнопка возвращения в галерею -->
     <Button
         android:id="@+id/galleryBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Gallery"
+        android:text="Галерея"
+        android:layout_margin="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/deleteBtn"
+        app:layout_constraintEnd_toStartOf="@id/restartBtn" />
+
+    <!-- Кнопка для перезапуска видео -->
+    <Button
+        android:id="@+id/restartBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Проиграть"
         android:layout_margin="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
